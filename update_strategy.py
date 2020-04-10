@@ -57,7 +57,7 @@ def dynamic_all(data, global_step, bitnum, m, config):
         lambda: tf.constant(1, dtype=tf.int64),
         lambda: tf.cond(
             tf.less(global_step, int(config["step_per_epoch"])),
-            lambda: _compute_interval(data, new_shift, new_m, config),
+            lambda: _compute_interval(data, new_shift, new_f, new_o, new_bitnum, new_m, config),
             lambda: tf.constant(config["steps_per_epoch"], dtype=tf.int64)
         )
     )
@@ -70,12 +70,12 @@ quantize_strategy = {"fix_all": fix_all,
                      "dynamic_all": dynamic_all}
 
 
-def _compute_interval(data, shift, m, config):
+def _compute_interval(data, shift, scale, offset, bitnum, m, config):
     """
     计算量化间隔
     """
     diff1 = config["alpha"] * tf.abs(shift - m)
-    quant_data = float2fix(data, shift, 1, 0)
+    quant_data = float2fix(data, shift, scale, offset, bitnum=bitnum)
     metrics = _compute_mean_diff(data, quant_data)
     diff2 = config["delta"] * metrics**2
     diff = tf.maximum(diff1, diff2)
@@ -116,16 +116,4 @@ def _loop_body(diff, bitnum, data):
     outdata = float2fix(data, new_shift, f, o, bitnum=bitnum)
     diff = _compute_mean_diff(data, outdata)
     return diff, bitnum, data
-
-
-
-
-
-
-
-
-
-
-
-
 
